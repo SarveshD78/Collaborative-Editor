@@ -1,0 +1,838 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ document.title }} - Collaborative Editor{% endblock %}
+
+{% block content %}
+<!-- Document Header -->
+<div class="row align-items-center mb-3">
+    <div class="col">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'documents:list' %}" class="text-decoration-none">
+                        <i class="bi bi-files me-1"></i>Documents
+                    </a>
+                </li>
+                <li class="breadcrumb-item active text-truncate" style="max-width: 200px;">
+                    {{ document.title }}
+                </li>
+            </ol>
+        </nav>
+        
+        <!-- Document Title -->
+        <h1 class="h4 mb-0 d-flex align-items-center">
+            <i class="bi bi-file-text text-primary me-2"></i>
+            <span class="text-truncate">{{ document.title }}</span>
+        </h1>
+    </div>
+    
+    <div class="col-auto">
+        <!-- Permission Badge -->
+        <span class="badge bg-{% if user_permission == 'owner' %}success{% elif user_permission == 'edit' %}primary{% else %}secondary{% endif %} me-2">
+            {% if user_permission == 'owner' %}
+                <i class="bi bi-crown me-1"></i>Owner
+            {% elif user_permission == 'edit' %}
+                <i class="bi bi-pencil me-1"></i>Editor
+            {% else %}
+                <i class="bi bi-eye me-1"></i>View Only
+            {% endif %}
+        </span>
+        
+        <!-- Action Buttons -->
+        <div class="btn-group">
+            {% if user_permission == 'owner' %}
+                <a href="{% url 'documents:manage_permissions' document.id %}" 
+                   class="btn btn-outline-primary btn-sm"
+                   data-bs-toggle="tooltip" title="Manage sharing">
+                    <i class="bi bi-share"></i>
+                    <span class="d-none d-md-inline ms-1">Share</span>
+                </a>
+            {% endif %}
+            
+            <a href="{% url 'documents:list' %}" 
+               class="btn btn-outline-secondary btn-sm"
+               data-bs-toggle="tooltip" title="Back to documents">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-lg-inline ms-1">Back</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Editor Layout -->
+<div class="row g-4">
+    <!-- Editor Column -->
+    <div class="col-lg-9">
+        <div class="card shadow-sm">
+            <!-- Editor Header -->
+            <div class="card-header bg-white py-3">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-people text-muted me-2"></i>
+                            <span class="text-muted small me-2">Online:</span>
+                            <div id="online-users" class="d-flex flex-wrap gap-1">
+                                <!-- Online users populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="d-flex align-items-center">
+                            <div id="connection-status" class="me-3">
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-wifi-off me-1"></i>Connecting...
+                                </span>
+                            </div>
+                            <small id="save-status" class="text-muted">Ready</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Editor Body -->
+            <div class="card-body p-0 position-relative">
+                <textarea 
+                    id="document-content" 
+                    class="form-control border-0 rounded-0" 
+                    style="min-height: 60vh; resize: vertical; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6;"
+                    placeholder="Start typing your document content here... Your changes will be saved automatically and shared with collaborators in real-time."
+                    {% if not can_edit %}disabled{% endif %}>{{ document.content }}</textarea>
+                
+                <!-- Character Count -->
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <small class="text-muted" id="char-count">0 characters</small>
+                </div>
+            </div>
+            
+            <!-- Editor Footer -->
+            {% if not can_edit %}
+                <div class="card-footer bg-warning bg-opacity-10">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-lock-fill text-warning me-2"></i>
+                        <small class="text-warning">
+                            You have view-only access to this document. Changes made by editors will appear here in real-time.
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+<!-- Enhanced Sidebar with AI -->
+<div class="col-lg-3">
+    <!-- AI Writing Assistant Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h6 class="card-title mb-0">
+                <i class="bi bi-robot text-primary me-2"></i>AI Writing Assistant
+            </h6>
+        </div>
+        <div class="card-body">
+            <!-- AI Status -->
+            <div class="d-flex align-items-center mb-3">
+                <div class="flex-grow-1">
+                    <small class="text-muted">Status:</small>
+                    <div id="ai-status" class="badge bg-secondary">Ready</div>
+                </div>
+                <button id="check-grammar-btn" class="btn btn-outline-primary btn-sm" 
+                        {% if not can_edit %}disabled{% endif %}>
+                    <i class="bi bi-magic"></i> Check
+                </button>
+            </div>
+            
+            <!-- AI Suggestions -->
+            <div id="ai-suggestions" class="d-none">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <small class="fw-semibold">Suggestions:</small>
+                    <button id="clear-suggestions" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div id="suggestions-list"></div>
+            </div>
+            
+            <!-- No Suggestions Message -->
+            <div id="no-suggestions" class="d-none">
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-check-circle text-success fs-4"></i>
+                    <div class="small mt-2">Great! No issues found.</div>
+                </div>
+            </div>
+            
+            <!-- Writing Stats -->
+            <div id="writing-stats" class="mt-3 pt-3 border-top">
+                <small class="fw-semibold text-muted d-block mb-2">Writing Stats:</small>
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="bg-light rounded p-2">
+                            <div class="fw-bold small" id="stats-words">0</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Words</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="bg-light rounded p-2">
+                            <div class="fw-bold small" id="stats-sentences">0</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Sentences</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">Readability: </small>
+                    <span id="stats-readability" class="badge bg-info">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Document Info Card (existing) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h6 class="card-title mb-0">
+                <i class="bi bi-info-circle me-2"></i>Document Info
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong class="small text-muted d-block">Owner</strong>
+                <div class="d-flex align-items-center">
+                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-2" 
+                         style="width: 24px; height: 24px;">
+                        <i class="bi bi-person-fill text-white small"></i>
+                    </div>
+                    <span class="small">{{ document.created_by.first_name|default:document.created_by.email }}</span>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <strong class="small text-muted d-block">Created</strong>
+                <small>{{ document.created_at|date:"M d, Y \a\t g:i A" }}</small>
+            </div>
+            
+            <div class="mb-3">
+                <strong class="small text-muted d-block">Last Updated</strong>
+                <small id="last-updated">{{ document.updated_at|timesince }} ago</small>
+            </div>
+            
+            <div class="mb-0">
+                <strong class="small text-muted d-block">Document Stats</strong>
+                <div class="row g-2 mt-1">
+                    <div class="col-6">
+                        <div class="text-center p-2 bg-light rounded">
+                            <div class="fw-bold small" id="word-count">0</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Words</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 bg-light rounded">
+                            <div class="fw-bold small" id="line-count">0</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Lines</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Collaborators Card (existing) -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h6 class="card-title mb-0">
+                <i class="bi bi-people me-2"></i>Collaborators
+            </h6>
+        </div>
+        <div class="card-body">
+            <!-- Owner -->
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-2" 
+                     style="width: 32px; height: 32px;">
+                    <i class="bi bi-crown text-white"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold small">{{ document.created_by.first_name|default:document.created_by.email }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">Owner</div>
+                </div>
+            </div>
+            
+            <!-- Other Collaborators -->
+            {% for collab in collaborators %}
+                {% if collab.permission != 'owner' %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-{% if collab.permission == 'edit' %}primary{% else %}secondary{% endif %} rounded-circle d-flex align-items-center justify-content-center me-2" 
+                             style="width: 28px; height: 28px;">
+                            <i class="bi bi-{% if collab.permission == 'edit' %}pencil{% else %}eye{% endif %} text-white small"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="small">{{ collab.user.first_name|default:collab.user.email }}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">{{ collab.permission|title }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-person-plus fs-3 d-block mb-2 opacity-50"></i>
+                    <small>No collaborators yet</small>
+                    {% if user_permission == 'owner' %}
+                        <div class="mt-2">
+                            <a href="{% url 'documents:manage_permissions' document.id %}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-share me-1"></i>Share Document
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div class="d-none" id="js-data" 
+     data-document-id="{{ document.id }}"
+     data-current-user="{{ user.username }}"
+     data-user-permission="{{ user_permission }}"
+     data-can-edit="{{ can_edit|yesno:'true,false' }}">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Get data from hidden div
+const jsData = document.getElementById('js-data');
+const documentId = jsData.dataset.documentId;
+const currentUser = jsData.dataset.currentUser;
+const userPermission = jsData.dataset.userPermission;
+const canEdit = jsData.dataset.canEdit === 'true';
+
+const textarea = document.getElementById('document-content');
+const saveStatus = document.getElementById('save-status');
+const onlineUsers = document.getElementById('online-users');
+const connectionStatus = document.getElementById('connection-status');
+const charCount = document.getElementById('char-count');
+const wordCount = document.getElementById('word-count');
+const lineCount = document.getElementById('line-count');
+const lastUpdated = document.getElementById('last-updated');
+
+let socket;
+let isConnected = false;
+let onlineUsersList = new Set();
+
+// Initialize WebSocket connection
+function initWebSocket() {
+    const wsUrl = `ws://localhost:8766/ws/document/${documentId}/username/${currentUser}`;
+    
+    updateConnectionStatus('connecting');
+    console.log('Connecting to:', wsUrl);
+    
+    socket = new WebSocket(wsUrl);
+    
+    socket.onopen = function(event) {
+        console.log('WebSocket connected');
+        isConnected = true;
+        updateConnectionStatus('connected');
+        updateSaveStatus('Connected - Real-time editing active');
+    };
+    
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log('Received:', data);
+        
+        switch(data.type) {
+            case 'connected':
+                showNotification('Connected to document', 'success');
+                break;
+                
+            case 'document_content':
+                if (textarea.value !== data.content) {
+                    updateDocumentContent(data.content);
+                }
+                break;
+                
+            case 'document_update':
+                if (data.username !== currentUser) {
+                    updateDocumentContent(data.content);
+                    updateSaveStatus(`Updated by ${data.username}`);
+                    showNotification(`${data.username} made changes`, 'info', 2000);
+                }
+                break;
+                
+            case 'user_joined':
+                if (data.username !== currentUser) {
+                    onlineUsersList.add(data.username);
+                    updateOnlineUsers();
+                    showNotification(`${data.username} joined`, 'info', 2000);
+                }
+                break;
+                
+            case 'user_left':
+                onlineUsersList.delete(data.username);
+                updateOnlineUsers();
+                showNotification(`${data.username} left`, 'info', 2000);
+                break;
+                
+            case 'online_users':
+                onlineUsersList.clear();
+                data.users.forEach(user => onlineUsersList.add(user));
+                updateOnlineUsers();
+                break;
+                
+            case 'error':
+                showNotification(data.message, 'error');
+                break;
+        }
+    };
+    
+    socket.onclose = function(event) {
+        console.log('WebSocket disconnected');
+        isConnected = false;
+        updateConnectionStatus('disconnected');
+        updateSaveStatus('Disconnected - Attempting to reconnect...');
+        
+        // Attempt to reconnect after 3 seconds
+        setTimeout(initWebSocket, 3000);
+    };
+    
+    socket.onerror = function(error) {
+        console.log('WebSocket error:', error);
+        updateConnectionStatus('error');
+        updateSaveStatus('Connection error');
+    };
+}
+
+// Send document changes
+function sendDocumentChange(content) {
+    if (socket && isConnected && canEdit) {
+        console.log('Sending document change');
+        socket.send(JSON.stringify({
+            type: 'document_change',
+            content: content
+        }));
+    }
+}
+
+// Update document content from other users
+function updateDocumentContent(content) {
+    const cursorPos = textarea.selectionStart;
+    const cursorEnd = textarea.selectionEnd;
+    
+    textarea.value = content;
+    updateDocumentStats(content);
+    
+    // Restore cursor position if user can edit
+    if (canEdit) {
+        textarea.setSelectionRange(cursorPos, cursorEnd);
+    }
+}
+
+// Real-time typing handler
+if (canEdit) {
+    let typingTimer;
+    const typingDelay = 300;
+    
+    textarea.addEventListener('input', function() {
+        updateSaveStatus('Typing...');
+        updateDocumentStats(this.value);
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            sendDocumentChange(this.value);
+            updateSaveStatus('Synced');
+        }, typingDelay);
+    });
+    
+    // Send changes immediately on paste/cut
+    textarea.addEventListener('paste', function() {
+        setTimeout(() => {
+            sendDocumentChange(this.value);
+        }, 50);
+    });
+    
+    textarea.addEventListener('cut', function() {
+        setTimeout(() => {
+            sendDocumentChange(this.value);
+        }, 50);
+    });
+}
+
+// Update online users display
+function updateOnlineUsers() {
+    if (!onlineUsers) return;
+    
+    onlineUsers.innerHTML = '';
+    
+    // Add current user
+    const currentUserBadge = document.createElement('span');
+    currentUserBadge.className = 'badge bg-success me-1';
+    currentUserBadge.innerHTML = '<i class="bi bi-person-fill me-1"></i>You';
+    onlineUsers.appendChild(currentUserBadge);
+    
+    // Add other users
+    onlineUsersList.forEach(username => {
+        if (username !== currentUser) {
+            const userBadge = document.createElement('span');
+            userBadge.className = 'badge bg-primary me-1';
+            userBadge.innerHTML = `<i class="bi bi-person me-1"></i>${username}`;
+            onlineUsers.appendChild(userBadge);
+        }
+    });
+}
+
+// Update connection status
+function updateConnectionStatus(status) {
+    const statusMap = {
+        'connecting': '<i class="bi bi-wifi me-1"></i>Connecting...',
+        'connected': '<i class="bi bi-wifi me-1"></i>Connected',
+        'disconnected': '<i class="bi bi-wifi-off me-1"></i>Disconnected',
+        'error': '<i class="bi bi-exclamation-triangle me-1"></i>Error'
+    };
+    
+    const classMap = {
+        'connecting': 'bg-warning',
+        'connected': 'bg-success',
+        'disconnected': 'bg-danger',
+        'error': 'bg-danger'
+    };
+    
+    connectionStatus.innerHTML = `<span class="badge ${classMap[status]}">${statusMap[status]}</span>`;
+}
+
+// Update save status
+function updateSaveStatus(message) {
+    saveStatus.textContent = message;
+    
+    if (message.includes('Typing')) {
+        saveStatus.className = 'text-primary small';
+    } else if (message.includes('Synced') || message.includes('Connected')) {
+        saveStatus.className = 'text-success small';
+    } else if (message.includes('error') || message.includes('Disconnected')) {
+        saveStatus.className = 'text-danger small';
+    } else if (message.includes('Updated by')) {
+        saveStatus.className = 'text-info small';
+        lastUpdated.textContent = 'just now';
+    } else {
+        saveStatus.className = 'text-muted small';
+    }
+}
+
+// Update document statistics
+function updateDocumentStats(content) {
+    const chars = content.length;
+    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+    const lines = content.split('\n').length;
+    
+    charCount.textContent = `${chars.toLocaleString()} characters`;
+    wordCount.textContent = words.toLocaleString();
+    lineCount.textContent = lines.toLocaleString();
+}
+
+// Initialize everything
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize document stats
+    updateDocumentStats(textarea.value);
+    
+    // Initialize WebSocket
+    initWebSocket();
+    
+    // Set initial state
+    if (!canEdit) {
+        textarea.disabled = true;
+        textarea.style.backgroundColor = '#f8f9fa';
+        updateSaveStatus('Read-only mode');
+    } else {
+        updateSaveStatus('Initializing...');
+    }
+    
+    // Initialize online users
+    updateOnlineUsers();
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+// AI Writing Assistant Functions
+let aiCheckTimeout;
+let lastCheckedText = '';
+
+// AI Elements
+const aiStatus = document.getElementById('ai-status');
+const checkGrammarBtn = document.getElementById('check-grammar-btn');
+const aiSuggestions = document.getElementById('ai-suggestions');
+const noSuggestions = document.getElementById('no-suggestions');
+const suggestionsList = document.getElementById('suggestions-list');
+const clearSuggestionsBtn = document.getElementById('clear-suggestions');
+const statsWords = document.getElementById('stats-words');
+const statsSentences = document.getElementById('stats-sentences');
+const statsReadability = document.getElementById('stats-readability');
+
+// AI Status Management
+function updateAIStatus(status, type = 'secondary') {
+    const statusMap = {
+        'ready': { text: 'Ready', class: 'bg-secondary' },
+        'checking': { text: 'Checking...', class: 'bg-warning' },
+        'suggestions': { text: 'Suggestions Ready', class: 'bg-success' },
+        'error': { text: 'Error', class: 'bg-danger' },
+        'no-issues': { text: 'No Issues Found', class: 'bg-success' }
+    };
+    
+    const statusInfo = statusMap[status] || { text: status, class: `bg-${type}` };
+    aiStatus.textContent = statusInfo.text;
+    aiStatus.className = `badge ${statusInfo.class}`;
+}
+
+// Check Grammar Function
+async function checkGrammar() {
+    const text = textarea.value.trim();
+    
+    if (!text || text.length < 10) {
+        updateAIStatus('ready');
+        hideSuggestions();
+        return;
+    }
+    
+    // Don't check same text again
+    if (text === lastCheckedText) {
+        return;
+    }
+    
+    lastCheckedText = text;
+    updateAIStatus('checking');
+    
+    try {
+        const response = await fetch(`/documents/${documentId}/ai-suggestions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ text: text })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySuggestions(data.suggestions);
+            updateWritingStats(data.stats);
+            
+            if (data.suggestions && data.suggestions.length > 0) {
+                updateAIStatus('suggestions');
+            } else {
+                updateAIStatus('no-issues');
+            }
+        } else {
+            updateAIStatus('error');
+            console.error('AI Error:', data.error);
+        }
+        
+    } catch (error) {
+        updateAIStatus('error');
+        console.error('AI Request Error:', error);
+    }
+}
+
+// Display Suggestions
+function displaySuggestions(suggestions) {
+    if (!suggestions || suggestions.length === 0) {
+        hideSuggestions();
+        showNoSuggestions();
+        return;
+    }
+    
+    hideNoSuggestions();
+    suggestionsList.innerHTML = '';
+    
+    suggestions.forEach((suggestion, index) => {
+        const suggestionElement = createSuggestionElement(suggestion, index);
+        suggestionsList.appendChild(suggestionElement);
+    });
+    
+    aiSuggestions.classList.remove('d-none');
+}
+
+// Create Suggestion Element
+function createSuggestionElement(suggestion, index) {
+    const div = document.createElement('div');
+    div.className = 'border rounded p-2 mb-2 suggestion-item';
+    div.innerHTML = `
+        <div class="d-flex align-items-start justify-content-between">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="badge bg-${getSuggestionTypeColor(suggestion.type)} me-2">${suggestion.type}</span>
+                    <small class="text-muted">${suggestion.reason}</small>
+                </div>
+                <div class="small mb-2">
+                    <strong>Original:</strong> <span class="text-danger">"${suggestion.original}"</span><br>
+                    <strong>Suggestion:</strong> <span class="text-success">"${suggestion.suggestion}"</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-1">
+            <button class="btn btn-success btn-sm" onclick="applySuggestion(${index}, '${escapeHtml(suggestion.original)}', '${escapeHtml(suggestion.suggestion)}')">
+                <i class="bi bi-check"></i> Apply
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="dismissSuggestion(${index})">
+                <i class="bi bi-x"></i> Dismiss
+            </button>
+        </div>
+    `;
+    return div;
+}
+
+// Get suggestion type color
+function getSuggestionTypeColor(type) {
+    const colors = {
+        'grammar': 'danger',
+        'spelling': 'warning',
+        'style': 'info',
+        'clarity': 'primary',
+        'formatting': 'secondary'
+    };
+    return colors[type] || 'secondary';
+}
+
+// Apply Suggestion
+function applySuggestion(index, original, suggestion) {
+    const currentText = textarea.value;
+    const newText = currentText.replace(original, suggestion);
+    
+    if (newText !== currentText) {
+        textarea.value = newText;
+        updateDocumentStats(newText);
+        
+        // Send change via WebSocket
+        if (canEdit) {
+            sendDocumentChange(newText);
+        }
+        
+        // Remove this suggestion
+        dismissSuggestion(index);
+        
+        showNotification('Suggestion applied successfully!', 'success', 2000);
+    }
+}
+
+// Dismiss Suggestion
+function dismissSuggestion(index) {
+    const suggestionItems = document.querySelectorAll('.suggestion-item');
+    if (suggestionItems[index]) {
+        suggestionItems[index].remove();
+    }
+    
+    // Check if no more suggestions
+    if (suggestionsList.children.length === 0) {
+        hideSuggestions();
+        showNoSuggestions();
+        updateAIStatus('no-issues');
+    }
+}
+
+// Update Writing Stats
+function updateWritingStats(stats) {
+    if (stats) {
+        statsWords.textContent = stats.words || 0;
+        statsSentences.textContent = stats.sentences || 0;
+        
+        const readability = stats.readability || 'N/A';
+        statsReadability.textContent = readability;
+        statsReadability.className = `badge bg-${getReadabilityColor(readability)}`;
+    }
+}
+
+// Get readability color
+function getReadabilityColor(readability) {
+    const colors = {
+        'Easy': 'success',
+        'Medium': 'warning',
+        'Hard': 'danger'
+    };
+    return colors[readability] || 'secondary';
+}
+
+// Show/Hide Functions
+function hideSuggestions() {
+    aiSuggestions.classList.add('d-none');
+}
+
+function showNoSuggestions() {
+    noSuggestions.classList.remove('d-none');
+}
+
+function hideNoSuggestions() {
+    noSuggestions.classList.add('d-none');
+}
+
+// Utility Functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Auto-check for grammar after user stops typing
+if (canEdit) {
+    textarea.addEventListener('input', function() {
+        clearTimeout(aiCheckTimeout);
+        updateAIStatus('ready');
+        hideNoSuggestions();
+        
+        // Auto-check after 4 seconds of no typing
+        aiCheckTimeout = setTimeout(() => {
+            if (this.value.trim().length > 50) { // Only check substantial text
+                checkGrammar();
+            }
+        }, 4000);
+    });
+}
+
+// Manual grammar check button
+checkGrammarBtn.addEventListener('click', function() {
+    if (!this.disabled) {
+        checkGrammar();
+    }
+});
+
+// Clear suggestions button
+clearSuggestionsBtn.addEventListener('click', function() {
+    hideSuggestions();
+    hideNoSuggestions();
+    updateAIStatus('ready');
+    lastCheckedText = '';
+});
+
+// Initialize AI on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAIStatus('ready');
+    
+    // Initial stats update
+    if (textarea.value.trim()) {
+        // Simple stats calculation for initial load
+        const words = textarea.value.trim().split(/\s+/).length;
+        const sentences = textarea.value.split(/[.!?]+/).filter(s => s.trim()).length;
+        updateWritingStats({
+            words: words,
+            sentences: sentences,
+            readability: words < 100 ? 'Easy' : words < 200 ? 'Medium' : 'Hard'
+        });
+    }
+});
+</script>
+{% endblock %}

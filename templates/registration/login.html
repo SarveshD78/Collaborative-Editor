@@ -1,0 +1,139 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Sign In - Collaborative Editor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h3 class="card-title mb-0">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Welcome Back
+                </h3>
+                <p class="mb-0 opacity-75">Sign in to your account</p>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                {% if form.errors %}
+                    <div class="alert alert-danger d-flex align-items-center" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div>
+                            <strong>Sign in failed!</strong> Please check your email and password.
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Email Field -->
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">
+                            <i class="bi bi-envelope me-1"></i>Email Address
+                        </label>
+                        <input type="email" 
+                               class="form-control form-control-lg" 
+                               name="username" 
+                               id="id_username" 
+                               placeholder="Enter your email address" 
+                               required 
+                               autofocus>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>Use the email address you registered with
+                        </div>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label">
+                            <i class="bi bi-lock me-1"></i>Password
+                        </label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   name="password" 
+                                   id="id_password" 
+                                   placeholder="Enter your password" 
+                                   required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Remember Me -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember_me" id="remember_me">
+                            <label class="form-check-label" for="remember_me">
+                                <i class="bi bi-bookmark me-1"></i>Keep me signed in
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Register Link -->
+                <div class="text-center mt-4">
+                    <hr class="my-4">
+                    <p class="text-muted mb-0">
+                        Don't have an account? 
+                        <a href="{% url 'documents:register' %}" class="text-decoration-none">
+                            <i class="bi bi-person-plus me-1"></i>Create Account
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="row g-2 mt-4 text-center">
+            <div class="col-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body p-2">
+                        <div class="text-primary fs-4"><i class="bi bi-people"></i></div>
+                        <small class="text-muted">Team Collaboration</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body p-2">
+                        <div class="text-success fs-4"><i class="bi bi-lightning"></i></div>
+                        <small class="text-muted">Real-time Sync</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card border-0 bg-transparent">
+                    <div class="card-body p-2">
+                        <div class="text-info fs-4"><i class="bi bi-shield-check"></i></div>
+                        <small class="text-muted">Secure & Safe</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const field = document.getElementById('id_password');
+    const icon = document.getElementById('toggleIcon');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

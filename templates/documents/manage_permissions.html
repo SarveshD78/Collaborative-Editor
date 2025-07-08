@@ -1,0 +1,358 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Manage Access - {{ document.title }}{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'documents:list' %}" class="text-decoration-none">
+                <i class="bi bi-files me-1"></i>Documents
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{% url 'documents:edit' document.id %}" class="text-decoration-none text-truncate" style="max-width: 150px;">
+                {{ document.title }}
+            </a>
+        </li>
+        <li class="breadcrumb-item active">Manage Access</li>
+    </ol>
+</nav>
+
+<!-- Header -->
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h1 class="h3 mb-1">
+            <i class="bi bi-share text-primary me-2"></i>Manage Document Access
+        </h1>
+        <p class="text-muted mb-0">Control who can view and edit "{{ document.title }}"</p>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'documents:edit' document.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Document
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Add Collaborator Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-plus me-2"></i>Add New Collaborator
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">
+                                <i class="bi bi-envelope me-1"></i>Email Address
+                            </label>
+                            <input type="email" 
+                                   name="email" 
+                                   id="email"
+                                   class="form-control" 
+                                   placeholder="Enter collaborator's email address"
+                                   required>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>User must be registered with this email
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="permission_level" class="form-label">
+                                <i class="bi bi-shield me-1"></i>Permission Level
+                            </label>
+                            <select name="permission_level" id="permission_level" class="form-select" required>
+                                <option value="view">
+                                    <i class="bi bi-eye"></i> Can View
+                                </option>
+                                <option value="edit" selected>
+                                    <i class="bi bi-pencil"></i> Can Edit
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-lg me-1"></i>Add
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Access Card -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people me-2"></i>Current Access
+                    <span class="badge bg-secondary ms-2">{{ permissions|length|add:1 }} user{{ permissions|length|add:1|pluralize }}</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <!-- Owner -->
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-crown text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">{{ document.created_by.first_name|default:document.created_by.email }}</h6>
+                                        {% if document.created_by.first_name %}
+                                            <small class="text-muted">{{ document.created_by.email }}</small>
+                                        {% endif %}
+                                        <div class="mt-1">
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-crown me-1"></i>Owner
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="text-end">
+                                    <div class="text-success fw-semibold">Full Access</div>
+                                    <small class="text-muted">Can edit, share & delete</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collaborators -->
+                    {% for perm in permissions %}
+                        <div class="list-group-item">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-{% if perm.permission_level == 'edit' %}primary{% else %}secondary{% endif %} rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                             style="width: 40px; height: 40px;">
+                                            <i class="bi bi-{% if perm.permission_level == 'edit' %}pencil{% else %}eye{% endif %} text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1">{{ perm.user.first_name|default:perm.user.email }}</h6>
+                                            {% if perm.user.first_name %}
+                                                <small class="text-muted">{{ perm.user.email }}</small>
+                                            {% endif %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-{% if perm.permission_level == 'edit' %}primary{% else %}secondary{% endif %}">
+                                                    <i class="bi bi-{% if perm.permission_level == 'edit' %}pencil{% else %}eye{% endif %} me-1"></i>
+                                                    {{ perm.permission_level|title }}
+                                                </span>
+                                                <small class="text-muted ms-2">
+                                                    <i class="bi bi-clock me-1"></i>Added {{ perm.granted_at|timesince }} ago
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="text-end">
+                                        <div class="fw-semibold text-{% if perm.permission_level == 'edit' %}primary{% else %}secondary{% endif %}">
+                                            {{ perm.permission_level|title }} Access
+                                        </div>
+                                        <small class="text-muted">
+                                            {% if perm.permission_level == 'edit' %}
+                                                Can view and edit
+                                            {% else %}
+                                                Can only view
+                                            {% endif %}
+                                        </small>
+                                        <div class="mt-2">
+                                            <div class="btn-group btn-group-sm">
+                                                <!-- Change Permission -->
+                                                <form method="post" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="email" value="{{ perm.user.email }}">
+                                                    <input type="hidden" name="permission_level" value="{% if perm.permission_level == 'edit' %}view{% else %}edit{% endif %}">
+                                                    <button type="submit" class="btn btn-outline-secondary" 
+                                                            data-bs-toggle="tooltip" 
+                                                            title="Change to {% if perm.permission_level == 'edit' %}view-only{% else %}edit{% endif %}">
+                                                        <i class="bi bi-{% if perm.permission_level == 'edit' %}eye{% else %}pencil{% endif %}"></i>
+                                                    </button>
+                                                </form>
+                                                
+                                                <!-- Remove -->
+                                                <form method="post" class="d-inline"
+                                                      onsubmit="return confirm('Remove {{ perm.user.first_name|default:perm.user.email }} from this document?')">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="remove">
+                                                    <input type="hidden" name="email" value="{{ perm.user.email }}">
+                                                    <button type="submit" class="btn btn-outline-danger"
+                                                            data-bs-toggle="tooltip" title="Remove access">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="list-group-item text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-3 opacity-50"></i>
+                                <h6>No collaborators yet</h6>
+                                <p class="mb-0">Add someone above to start collaborating!</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Permission Guide -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Permission Levels
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-2" 
+                             style="width: 24px; height: 24px;">
+                            <i class="bi bi-crown text-white small"></i>
+                        </div>
+                        <strong class="text-success">Owner</strong>
+                    </div>
+                    <small class="text-muted">Full control over the document including editing, sharing, and deletion rights.</small>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" 
+                             style="width: 24px; height: 24px;">
+                            <i class="bi bi-pencil text-white small"></i>
+                        </div>
+                        <strong class="text-primary">Can Edit</strong>
+                    </div>
+                    <small class="text-muted">Can view and edit the document content in real-time. Cannot share or delete.</small>
+                </div>
+
+                <div class="mb-0">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-2" 
+                             style="width: 24px; height: 24px;">
+                            <i class="bi bi-eye text-white small"></i>
+                        </div>
+                        <strong class="text-secondary">Can View</strong>
+                    </div>
+                    <small class="text-muted">Can only view the document and see real-time changes made by others.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Stats -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Sharing Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="bg-primary bg-opacity-10 rounded p-3">
+                            <div class="text-primary fs-4 fw-bold">{{ permissions|length|add:1 }}</div>
+                            <small class="text-muted">Total Users</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="bg-success bg-opacity-10 rounded p-3">
+                            <div class="text-success fs-4 fw-bold">
+                                {% for perm in permissions %}{% if perm.permission_level == 'edit' %}{{ forloop.counter }}{% endif %}{% empty %}0{% endfor %}
+                            </div>
+                            <small class="text-muted">Editors</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-lightning me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'documents:edit' document.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil me-2"></i>Edit Document
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="copyDocumentLink()">
+                        <i class="bi bi-link-45deg me-2"></i>Copy Document Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    
+    const forms = document.querySelectorAll('.needs-validation');
+    
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+})();
+
+// Copy document link function
+function copyDocumentLink() {
+    const url = `${window.location.origin}{% url 'documents:edit' document.id %}`;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function() {
+            showNotification('Document link copied to clipboard!', 'success');
+        });
+    } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Document link copied to clipboard!', 'success');
+    }
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

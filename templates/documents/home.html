@@ -1,0 +1,116 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Welcome - Collaborative Editor{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row align-items-center min-vh-75 py-5">
+    <div class="col-lg-6 mb-5 mb-lg-0">
+        <div class="text-center text-lg-start">
+            <h1 class="display-4 fw-bold mb-4">
+                Real-time <span class="text-primary">Collaborative</span> Document Editor
+            </h1>
+            <p class="lead text-muted mb-4">
+                Create, edit, and share documents with your team in real-time. 
+                See changes instantly as you collaborate together.
+            </p>
+            
+            <div class="d-grid d-sm-flex gap-3 justify-content-center justify-content-lg-start">
+                <a href="{% url 'documents:register' %}" class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Get Started Free
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg px-4">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </a>
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="bi bi-shield-check me-1"></i>No setup required • 
+                    <i class="bi bi-envelope me-1"></i>Email-based accounts • 
+                    <i class="bi bi-lightning me-1"></i>Instant collaboration
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="text-center">
+            <div class="position-relative">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex align-items-center">
+                            <div class="d-flex">
+                                <div class="bg-danger rounded-circle me-1" style="width: 12px; height: 12px;"></div>
+                                <div class="bg-warning rounded-circle me-1" style="width: 12px; height: 12px;"></div>
+                                <div class="bg-success rounded-circle" style="width: 12px; height: 12px;"></div>
+                            </div>
+                            <small class="ms-auto">📝 Project Planning.txt</small>
+                        </div>
+                    </div>
+                    <div class="card-body p-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="bg-white rounded p-3 mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-success me-2">👥 3 online</span>
+                                <small class="text-muted">Live collaboration</small>
+                            </div>
+                            <div class="font-monospace small text-start">
+                                <div class="text-primary">Project Timeline:</div>
+                                <div>• Phase 1: Research <span class="text-success">✓</span></div>
+                                <div>• Phase 2: Development <span class="text-warning">⏳</span></div>
+                                <div>• Phase 3: Testing <span class="blinking-cursor">|</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex">
+                                <span class="badge bg-primary me-1">John</span>
+                                <span class="badge bg-success me-1">Sarah</span>
+                                <span class="badge bg-info">Mike</span>
+                            </div>
+                            <small class="text-white-50">Auto-saved</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Floating user avatars -->
+                <div class="position-absolute top-0 start-0 translate-middle">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 40px; height: 40px;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                </div>
+                <div class="position-absolute top-50 end-0 translate-middle-y">
+                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                         style="width: 35px; height: 35px;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<style>
+.min-vh-75 {
+    min-height: 75vh;
+}
+
+.blinking-cursor {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}
+</style>
+{% endblock %}

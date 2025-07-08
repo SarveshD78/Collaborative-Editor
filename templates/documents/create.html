@@ -1,0 +1,188 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Create Document - Collaborative Editor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'documents:list' %}" class="text-decoration-none">
+                        <i class="bi bi-files me-1"></i>Documents
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Create New</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white py-4">
+                <div class="text-center">
+                    <h3 class="card-title mb-1">
+                        <i class="bi bi-file-plus me-2"></i>Create New Document
+                    </h3>
+                    <p class="mb-0 opacity-75">Start collaborating with your team</p>
+                </div>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="title" class="form-label">
+                            <i class="bi bi-file-text me-1"></i>Document Title
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               id="title" 
+                               name="title" 
+                               placeholder="Enter a descriptive title for your document"
+                               required 
+                               autofocus
+                               maxlength="200">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Choose a clear title that describes the document's purpose
+                        </div>
+                        <div class="invalid-feedback">
+                            Please provide a valid document title.
+                        </div>
+                    </div>
+                    
+                    <!-- Document Type Suggestions -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-lightbulb me-1"></i>Document Type
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <button type="button" class="btn btn-outline-primary w-100 btn-sm suggestion-btn" 
+                                        data-title="Meeting Notes - {{ 'now'|date:'M d, Y' }}">
+                                    <i class="bi bi-people d-block mb-1"></i>
+                                    <small>Meeting</small>
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button type="button" class="btn btn-outline-primary w-100 btn-sm suggestion-btn" 
+                                        data-title="Project Plan - New Project">
+                                    <i class="bi bi-diagram-3 d-block mb-1"></i>
+                                    <small>Project</small>
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button type="button" class="btn btn-outline-primary w-100 btn-sm suggestion-btn" 
+                                        data-title="Team Brainstorm Session">
+                                    <i class="bi bi-lightbulb d-block mb-1"></i>
+                                    <small>Brainstorm</small>
+                                </button>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <button type="button" class="btn btn-outline-primary w-100 btn-sm suggestion-btn" 
+                                        data-title="Research Document">
+                                    <i class="bi bi-search d-block mb-1"></i>
+                                    <small>Research</small>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-text">
+                            <small>Click a suggestion to use as your document title</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-rocket-takeoff me-2"></i>Create & Start Editing
+                            </button>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{% url 'documents:list' %}" class="btn btn-outline-secondary btn-lg w-100">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Documents
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Features Preview -->
+        <div class="row g-3 mt-4">
+            <div class="col-sm-4">
+                <div class="card border-0 bg-light text-center">
+                    <div class="card-body py-3">
+                        <i class="bi bi-lightning-charge text-primary fs-4"></i>
+                        <div class="small mt-2">Real-time Collaboration</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card border-0 bg-light text-center">
+                    <div class="card-body py-3">
+                        <i class="bi bi-shield-check text-success fs-4"></i>
+                        <div class="small mt-2">Auto-save Protection</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card border-0 bg-light text-center">
+                    <div class="card-body py-3">
+                        <i class="bi bi-share text-info fs-4"></i>
+                        <div class="small mt-2">Easy Sharing</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    
+    const form = document.querySelector('.needs-validation');
+    const titleInput = document.getElementById('title');
+    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+    
+    // Handle suggestion clicks
+    suggestionBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const title = this.getAttribute('data-title');
+            titleInput.value = title;
+            titleInput.focus();
+            
+            // Visual feedback
+            this.classList.add('btn-primary');
+            this.classList.remove('btn-outline-primary');
+            setTimeout(() => {
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-outline-primary');
+            }, 200);
+        });
+    });
+    
+    // Form submission validation
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Real-time validation feedback
+    titleInput.addEventListener('input', function() {
+        if (this.value.trim().length > 0) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            this.classList.remove('is-valid');
+        }
+    });
+})();
+</script>
+{% endblock %}
